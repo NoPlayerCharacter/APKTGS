@@ -1,0 +1,21 @@
+# 1. Gunakan base image Node.js versi Long Term Support (LTS)
+FROM node:18-alpine
+
+# 2. Tetapkan direktori kerja di dalam container
+WORKDIR /app
+
+# 3. Salin package.json dan package-lock.json terlebih dahulu
+# Ini memanfaatkan cache Docker, sehingga 'npm install' hanya berjalan jika ada perubahan dependensi
+COPY package*.json ./
+
+# 4. Install semua dependensi proyek
+RUN npm install
+
+# 5. Salin sisa file aplikasi ke dalam direktori kerja
+COPY . .
+
+# 6. Buka port 5000 agar bisa diakses dari luar container
+EXPOSE 5000
+
+# 7. Perintah default untuk menjalankan aplikasi saat container dimulai
+CMD [ "node", "server.js" ]

@@ -1,7 +1,7 @@
 const mysql = require("mysql2");
 
 const db = mysql.createConnection({
-  host: "localhost",
+  host: "db",
   user: "root",     // default user XAMPP
   password: "",     // default kosong di XAMPP
   database: "keuangan_db"

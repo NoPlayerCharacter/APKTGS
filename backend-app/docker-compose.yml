@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # Layanan (Container) untuk aplikasi backend Node.js
+  app:
+    build: . # Bangun image dari Dockerfile di direktori saat ini
+    ports:
+      - "5000:5000" # Petakan port 5000 di host ke port 5000 di container
+    volumes:
+      - .:/app # Sinkronkan kode di direktori saat ini dengan /app di container (untuk development)
+      - /app/node_modules # Pastikan node_modules di container tidak ditimpa
+    environment:
+      # Anda bisa menambahkan variabel lingkungan di sini jika perlu
+      - NODE_ENV=development
+    depends_on:
+      - db # Pastikan container 'db' dimulai terlebih dahulu sebelum 'app'
+
+  # Layanan (Container) untuk database MySQL
+  db:
+    image: mysql:5.7 # Gunakan official image MySQL versi 5.7
+    restart: always # Selalu restart container jika mati
+    environment:
+      MYSQL_DATABASE: 'keuangan_db' # Nama database yang akan dibuat
+      MYSQL_USER: 'root' # Anda bisa membuat user baru di sini
+      MYSQL_ROOT_PASSWORD: '' # Password untuk user root
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes' # Izinkan password kosong (hanya untuk development)
+    ports:
+      - "3306:3306" # Petakan port 3306 di host agar bisa diakses oleh tools DB
+    volumes:
+      - mysql_data:/var/lib/mysql # Simpan data MySQL secara persisten
+
+volumes:
+  mysql_data:
