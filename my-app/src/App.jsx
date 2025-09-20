@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -9,7 +9,8 @@ import {
   Legend,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
-import "./App.css"; // 👉 panggil CSS di sini
+import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from "./api";
+import "./App.css";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -23,31 +24,53 @@ function App() {
   });
   const [editIndex, setEditIndex] = useState(null);
 
+  // Fetch data dari backend
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
+    try {
+      const res = await getTransactions();
+      setTransactions(res.data);
+    } catch (err) {
+      console.error("Error fetch transactions:", err);
+    }
+  };
+
   // Handle input form
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   // Tambah / Update transaksi
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.category || !form.amount || !form.date)
       return alert("Lengkapi semua field!");
 
-    if (editIndex !== null) {
-      const updated = [...transactions];
-      updated[editIndex] = form;
-      setTransactions(updated);
-      setEditIndex(null);
-    } else {
-      setTransactions([...transactions, form]);
+    try {
+      if (editIndex !== null) {
+        await updateTransaction(transactions[editIndex].id, form);
+        setEditIndex(null);
+      } else {
+        await addTransaction(form);
+      }
+      setForm({ type: "income", category: "", amount: "", date: "" });
+      fetchTransactions();
+    } catch (err) {
+      console.error("Error submit transaction:", err);
     }
-    setForm({ type: "income", category: "", amount: "", date: "" });
   };
 
   // Hapus transaksi
-  const handleDelete = (index) => {
-    setTransactions(transactions.filter((_, i) => i !== index));
+  const handleDelete = async (index) => {
+    try {
+      await deleteTransaction(transactions[index].id);
+      fetchTransactions();
+    } catch (err) {
+      console.error("Error delete transaction:", err);
+    }
   };
 
   // Edit transaksi
@@ -63,9 +86,8 @@ function App() {
       month: "short",
       year: "numeric",
     });
-    if (!monthlyData[month]) {
-      monthlyData[month] = { income: 0, expense: 0 };
-    }
+    if (!monthlyData[month]) monthlyData[month] = { income: 0, expense: 0 };
+
     if (t.type === "income") {
       monthlyData[month].income += parseFloat(t.amount);
     } else {
@@ -96,12 +118,7 @@ function App() {
 
       {/* Form Input */}
       <form onSubmit={handleSubmit} className="transaction-form">
-        <select
-          name="type"
-          value={form.type}
-          onChange={handleChange}
-          className="form-input"
-        >
+        <select name="type" value={form.type} onChange={handleChange} className="form-input">
           <option value="income">Pemasukan</option>
           <option value="expense">Pengeluaran</option>
         </select>
@@ -153,7 +170,7 @@ function App() {
             </tr>
           ) : (
             transactions.map((t, i) => (
-              <tr key={i}>
+              <tr key={t.id}>
                 <td>{t.type === "income" ? "Pemasukan" : "Pengeluaran"}</td>
                 <td>{t.category}</td>
                 <td>Rp {parseFloat(t.amount).toLocaleString()}</td>
@@ -162,10 +179,7 @@ function App() {
                   <button onClick={() => handleEdit(i)} className="edit-btn">
                     Edit
                   </button>
-                  <button
-                    onClick={() => handleDelete(i)}
-                    className="delete-btn"
-                  >
+                  <button onClick={() => handleDelete(i)} className="delete-btn">
                     Hapus
                   </button>
                 </td>
